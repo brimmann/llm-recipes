@@ -70,5 +70,6 @@ def get_split(dataset_config, tokenizer, split):
     dataset = load_from_disk("/content/drive/MyDrive/mistral-sqaud-ds")
     dataset = dataset[split]
     if dataset_config.training_size < 1: dataset = dataset.select(range(int(len(dataset)*dataset_config.training_size)))
+    print("dataset.features: debugging : ", dataset.features)
     dataset = dataset.map(lambda item: tokenize(item, tokenizer, dataset_config.encoder_decoder), remove_columns=list(dataset.features))
     return dataset
