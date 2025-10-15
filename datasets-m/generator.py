@@ -105,7 +105,12 @@ if __name__ == "__main__":
     if args.from_disk:
         dataset = load_from_disk(args.dataset_id)
         if args.split_name: dataset = dataset[args.split_name]
-    else: dataset = load_dataset(args.dataset_id, split=args.split_name)
+    else: 
+        trunc_size = None
+        if args.split_name == "train":
+            dataset = load_dataset(args.dataset_id, split=args.split_name).select(1000)
+        else: 
+            dataset = load_dataset(args.dataset_id, split=args.split_name).select(100)
     if args.mapping: dataset = mapping(args.mapping, dataset)
     has_title = True if 'title' in dataset.column_names and args.title else False
     dataset = dataset.map(lambda item: create_prompt_column(args.task, args.number_few_shot, item, has_title))
