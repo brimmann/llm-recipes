@@ -17,22 +17,23 @@ def __load_module_from_py_file(py_file: str) -> object:
 def create_prompt(task: str, few_shot: int, **args):
     prompt = ""
     if args.get('sys_user', False):
-        prompt += json.load(open(f"/content/llm-recipes/prompt/context.json"))[task] + "\n\n"
+        prompt += json.load(open(f"/home/brimmann/works/llm-recipes/prompt/context.json"))[task] + "\n\n"
 
-    module = __load_module_from_py_file(f"/content/llm-recipes/prompt/few_shot/{task}.py")
+    module = __load_module_from_py_file(f"/home/brimmann/works/llm-recipes/prompt/few_shot/{task}.py")
     request = '\n'.join(getattr(module, "create_request")(**args))
 
     if few_shot:
         shot = '\n\n'.join(['\n'.join(s) for s in getattr(module, "create_few_shot")(few_shot, **args)])
         prompt += f"{shot}\n\n{request}"
     else:
+        print("Few shot is zero")
         prompt += request
     return prompt
 
 
 def create_chat_prompt(task: str, few_shot: int, **args):
-    chat, sys_prompt = [], json.load(open(f"/content/llm-recipes/prompt/context.json"))[task]
-    module = __load_module_from_py_file(f"/content/llm-recipes/prompt/few_shot/{task}.py")
+    chat, sys_prompt = [], json.load(open(f"prompt/context.json"))[task]
+    module = __load_module_from_py_file(f"prompt/few_shot/{task}.py")
     request = getattr(module, "create_request")(**args)
 
     if not args.get('sys_user', False): chat.append({"role": "system", "content": sys_prompt})
@@ -45,6 +46,7 @@ def create_chat_prompt(task: str, few_shot: int, **args):
         for s in shot: chat.extend([{"role": "user", "content": s[0]}, {"role": "assistant", "content": s[1]}])
         chat.extend([{"role": "user", "content": request[0]}, {"role": "assistant", "content": request[1]}])
     else:
+        print("Few shot is zero in chat")
         if args.get('sys_user', False): chat.extend([{"role": "user", "content": f"{sys_prompt}\n\n{request[0]}"}, {"role": "assistant", "content": request[1]}])
         else: chat.extend([{"role": "user", "content": request[0]}, {"role": "assistant", "content": request[1]}])
     prompt = args['chat_template'](chat, tokenize=False)

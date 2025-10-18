@@ -36,6 +36,7 @@ def tokenize(item, tokenizer, encoder_decoder=False):
             question = item['question'],
         )
 
+
     context_tokens = tokenizer.encode(f"{tokenizer.bos_token} {prompt}", add_special_tokens=False)
     if not encoder_decoder:
         if 'chat' in tokenizer.name_or_path.lower() or "instruct" in tokenizer.name_or_path.lower():
@@ -67,7 +68,7 @@ def tokenize(item, tokenizer, encoder_decoder=False):
         }
 
 def get_split(dataset_config, tokenizer, split):
-    dataset = load_from_disk("/content/drive/MyDrive/mistral-sqaud-ds")
+    dataset = load_from_disk("./datasets/hf/Mistral-7B-Instruct-v0.2-squad")
     dataset = dataset[split]
     if dataset_config.training_size < 1: dataset = dataset.select(range(int(len(dataset)*dataset_config.training_size)))
     print("dataset.features: debugging : ", dataset.features)
