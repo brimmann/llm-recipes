@@ -6,8 +6,8 @@ from policies import AnyPrecisionAdamW
 from policies import apply_fsdp_checkpointing
 from models.fsdp import fsdp_auto_wrap_policy
 from configs import fsdp_config as FSDP_CONFIG
-from models.distillation_model import DistillationModel
-from optimum.bettertransformer import BetterTransformer
+from models.distillation_model import DistillationModel, DistillationModelXrag
+# from optimum.bettertransformer import BetterTransformer
 from transformers import AutoModelForCausalLM, MT5ForConditionalGeneration, AutoTokenizer
 from configs.configs_utils import generate_peft_config, update_config
 from peft import get_peft_model, prepare_model_for_int8_training
@@ -67,13 +67,13 @@ def load_model(train_config, rank):
         else:
             model = load()
 
-        if train_config.use_fast_kernels:
-            """
-            For FSDP and FSDP+PEFT, setting 'use_fast_kernels' will enable
-            using of Flash Attention or Xformer memory-efficient kernels
-            based on the hardware being used. This would speed up fine-tuning.
-            """
-            model = BetterTransformer.transform(model)
+        # if train_config.use_fast_kernels:
+        #     """
+        #     For FSDP and FSDP+PEFT, setting 'use_fast_kernels' will enable
+        #     using of Flash Attention or Xformer memory-efficient kernels
+        #     based on the hardware being used. This would speed up fine-tuning.
+        #     """
+        #     model = BetterTransformer.transform(model)
             
     print_model_size(model, train_config, rank)
     return model
@@ -129,7 +129,7 @@ def get_distillation_models(train_config, distil_config, fsdp_config, rank, kwar
     update_config((teacher_fsdp_config), **dataclasses.asdict(distil_config))
     teacher_tokenizer, teacher_model = get_model(distil_config, distil_config, rank, kwargs)
 
-    return student_tokenizer, teacher_tokenizer, DistillationModel(student_model, teacher_model)
+    return student_tokenizer, teacher_tokenizer, DistillationModel(student_model, teacher_model) if not distil_config.xrag else DistillationModelXrag(student_model, teacher_model)
 
 def get_optimizer(model, train_config, fsdp_config):
     if fsdp_config.pure_bf16 and fsdp_config.optimizer == "anyprecision":

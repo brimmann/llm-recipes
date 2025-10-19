@@ -54,6 +54,7 @@ def get_dataloader(dataset_config, train_config, tokenizer, rank, distil_config=
         tokenizer,
         split="train",
     )
+    # print("singel", dataset_train[0])
     if train_config.batching_strategy == "packing":
         dataset_train = ConcatDataset(
             dataset_train, chunk_size=train_config.context_length)

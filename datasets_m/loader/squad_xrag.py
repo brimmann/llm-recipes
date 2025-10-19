@@ -1,34 +1,18 @@
 import os
 import sys
-from datasets import load_dataset, load_from_disk
+from datasets import load_from_disk
 
 sys.path.append(f"{os.getenv('HOME')}/llm-distillation")
 from prompt.prompt import create_chat_prompt
 from prompt.prompt import create_prompt
 
-def tokenize_xrag(item, tokenizer):
-    if tokenizer.name_or_path == "Hannibal046/xrag-7b":
-        prompt = "[INST] Background: <xRAG>, which also means:[/INST]"
-    elif tokenizer.name_or_path == "google/gemma-3-1b-it":
-        prompt = "<start_of_turn>user\nBackground: <xRAG>, which also means:<end_of_turn>"
-    
+def create_xrag_prompt():
+    pass
 
-    context_tokens = tokenizer.encode(f"{prompt}", add_special_tokens=False)
-    answer_tokens = tokenizer.encode(f"{item['generated_text']}", add_special_tokens=False)
+def tokenize(item, tokenizer, encoder_decoder=False, xrag=False):
+    if not xrag:
+        is_chat = True if 'chat' in tokenizer.name_or_path.lower() or "instruct" in tokenizer.name_or_path.lower() else False
 
-    prompt_tokens = context_tokens+answer_tokens
-    # print("len(prompt_tokens)", len(prompt_tokens))
-    labels_tokens = (len(context_tokens)*[-100,])+answer_tokens
-    # print("len(labels_tokens)", len(labels_tokens))
-
-    combined_tokens = {
-                "input_ids": prompt_tokens,
-                "labels": labels_tokens
-    }
-    return dict(combined_tokens, attention_mask=[1]*len(combined_tokens["input_ids"]), retrieval_embeds=item["embeddings"])
-
-def tokenize(item, tokenizer, encoder_decoder=False):
-    is_chat = True if 'chat' in tokenizer.name_or_path.lower() or "instruct" in tokenizer.name_or_path.lower() else False
     task = "qa"
 
     if tokenizer.name_or_path == "meta-llama/Llama-2-7b-chat-hf":
@@ -50,6 +34,8 @@ def tokenize(item, tokenizer, encoder_decoder=False):
             sys_user = True if "mistralai/Mistral-7B-Instruct-v0.2" in tokenizer.name_or_path else False,
             chat_template = tokenizer.apply_chat_template
         )
+    elif xrag:
+
     else:
         prompt = create_prompt(
             task, 0, 
@@ -89,14 +75,9 @@ def tokenize(item, tokenizer, encoder_decoder=False):
         }
 
 def get_split(dataset_config, tokenizer, split):
-    if dataset_config.xrag:
-        dataset = load_dataset("brimmann2/squad-v2-sampled", split=split)
-        dataset = dataset.map(lambda item: tokenize_xrag(item, tokenizer), remove_columns=list(dataset.features))
-        return dataset
-
-
     dataset = load_from_disk("./datasets/hf/Mistral-7B-Instruct-v0.2-squad")
     dataset = dataset[split]
     if dataset_config.training_size < 1: dataset = dataset.select(range(int(len(dataset)*dataset_config.training_size)))
-    dataset = dataset.map(lambda item: tokenize(item, tokenizer, dataset_config.encoder_decoder), remove_columns=list(dataset.features))
+    print("dataset.features: debugging : ", dataset.features)
+    dataset = dataset.map(lambda item: tokenize(item, tokenizer, dataset_config.encoder_decoder, dataset_config.xrag), remove_columns=list(dataset.features))
     return dataset

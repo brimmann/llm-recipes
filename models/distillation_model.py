@@ -14,6 +14,7 @@ def preprocess_distillation_batch(batch):
 class DistillationModel(nn.Module):
     def __init__(self, student, teacher):
         super().__init__()
+        print("initializing normal distillation...")
         self.student = student
         self.teacher = teacher
         self.teacher.eval()
@@ -30,6 +31,32 @@ class DistillationModel(nn.Module):
             input_ids=student_input_ids,
             attention_mask=student_attention_mask,
             labels=student_labels
+        )
+        return student_output, teacher_output
+
+
+class DistillationModelXrag(nn.Module):
+    def __init__(self, student, teacher):
+        super().__init__()
+        print("initializing xRAG distillation...")
+        self.student = student
+        self.teacher = teacher
+        self.teacher.eval()
+
+    def forward(self, student_input_ids, student_attention_mask, student_retrieval_embeds, student_labels, teacher_input_ids, teacher_attention_mask, teacher_retrieval_embeds, teacher_labels):
+        with torch.no_grad():
+            teacher_output = self.teacher(
+                input_ids=teacher_input_ids,
+                attention_mask=teacher_attention_mask,
+                labels=teacher_labels,
+                retrieval_embeds=teacher_retrieval_embeds
+            )
+
+        student_output = self.student(
+            input_ids=student_input_ids,
+            attention_mask=student_attention_mask,
+            labels=student_labels,
+            retrieval_embeds=student_retrieval_embeds
         )
         return student_output, teacher_output
 
